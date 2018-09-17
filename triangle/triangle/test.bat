@@ -1,41 +1,39 @@
-set PROGRAM="%~1"
-                                                                
 REM неверное количество параметров
-%PROGRAM% test\in1.txt output.txt                                 
-IF NOT ERRORLEVEL 1 GOTO err 
+triangle.exe 1 > output.txt                                
+IF NOT ERRORLEVEL 1 GOTO err  
 FC output.txt test\out1.txt 
-IF NOT ERRORLEVEL 1 GOTO err  
-
+IF ERRORLEVEL 1 GOTO err          
+                          
 REM неверный пользовательский ввод  
-%PROGRAM% test\in2.txt output.txt                                 
-IF NOT ERRORLEVEL 1 GOTO err 
-FC output.txt test\out2.txt 
+triangle.exe 2 3 ff > output.txt                                
 IF NOT ERRORLEVEL 1 GOTO err  
-           
+FC output.txt test\out2.txt 
+IF ERRORLEVEL 1 GOTO err                       
+
 REM равносторонний
-triangle.exe test\in3.txt output.txt                                 
+triangle.exe 1 1 1 > output.txt                               
 IF ERRORLEVEL 1 GOTO err 
 FC output.txt test\out3.txt 
 IF ERRORLEVEL 1 GOTO err  
-        
+
 REM равнобедренный
-%PROGRAM% test\in4.txt output.txt                                 
+triangle.exe 2 3 3 > output.txt                                 
 IF ERRORLEVEL 1 GOTO err 
 FC output.txt test\out4.txt 
 IF ERRORLEVEL 1 GOTO err  
 
 REM обычный
-%PROGRAM% test\in5.txt output.txt                                 
+triangle.exe 3 4 5 > output.txt                                 
 IF ERRORLEVEL 1 GOTO err 
 FC output.txt test\out5.txt 
 IF ERRORLEVEL 1 GOTO err                               
                             
 REM не треугольник
-%PROGRAM% test\in6.txt output.txt                                 
+triangle.exe 3 4 20 > output.txt                                 
 IF ERRORLEVEL 1 GOTO err 
 FC output.txt test\out6.txt 
 IF ERRORLEVEL 1 GOTO err  
-                     
+                       
 ECHO Program testing succeeded :-)                  
 EXIT                                                
 :err                                                
