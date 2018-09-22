@@ -10,8 +10,14 @@ IF NOT ERRORLEVEL 1 GOTO err
 FC output.txt test\out2.txt 
 IF ERRORLEVEL 1 GOTO err                       
 
-REM равносторонний
-triangle.exe 1 1 1 > output.txt                               
+REM равносторонний 
+triangle.exe 1.1 1.1 1.1 > output.txt                               
+IF ERRORLEVEL 1 GOTO err 
+FC output.txt test\out3.txt 
+IF ERRORLEVEL 1 GOTO err 
+ 
+REM равносторонний 
+triangle.exe 1,1 1,1 1,1 > output.txt                               
 IF ERRORLEVEL 1 GOTO err 
 FC output.txt test\out3.txt 
 IF ERRORLEVEL 1 GOTO err  

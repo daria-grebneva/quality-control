@@ -4,6 +4,9 @@ var querystring = require('querystring');
 var static = require('node-static');
 var file = new static.Server('.');
 
+//npm install request
+//npm install express
+//npm install cheerio
 
 function accept(req, res) {
 
