@@ -8,6 +8,9 @@ var file = new static.Server('.');
 //npm install express
 //npm install cheerio
 //npm install request-promise
+//npm install needle
+//npm install url
+//npm install fs
 
 function accept(req, res) {
 
