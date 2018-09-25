@@ -1,7 +1,5 @@
 var express = require("express");
 var cheerio = require('cheerio');
-var needle = require('needle');
-var request = require('request');
 var rqp = require("request-promise");
 
 var app = express();
@@ -15,7 +13,7 @@ StartServer();
 
 function StartServer() {
     app.listen(8080);
-    console.log("Something awesome to happen at http://localhost:8080");
+    console.log("Server started on http://localhost:8080");
 }
 
 function ProcessLinks() {
@@ -26,7 +24,6 @@ function ProcessLinks() {
 
             var linksArr = [];
             var mainURL = url;
-
 
             let getData = () => {
                 return new Promise(function (resolve, reject) {
@@ -52,14 +49,7 @@ function ProcessLinks() {
                 let main = async () => {
                     linksArr = await getData();
                 };
-
                 await main();
-
-                //Приходит объект ссылка-статус, обработать плохие статусы
-                // console.log(linksArr);
-                // for (element in linksArr) {
-                //     console.log( element.link +  "  " + element.statusCode );
-                // };
 
             })();
 
@@ -86,33 +76,14 @@ function GetStatusCode(mainURL, linksArr, response) {
     let getData = () => {
         return new Promise(function (resolve, reject) {
             rqp(mainURL, function (err, resp, body) {
-                var linkInfo = [];
-                linksArr.forEach(function (link) {
-                    var protocol = link.split('://')[0];
-                    protocol = require(protocol);
 
-                    protocol.get(link, function (res) {
-                       // response.write("<a href=" + link + ">" + link + "</a>" + "  " + res.statusCode + "<br />");
-                        var linkElem = {};
-                        linkElem.link = link;
-                        linkElem.status = res.statusCode;
-                        linkInfo.push(linkElem);
-                    }).on('error', function (e) {
-                        // console.error(e);
-                    });
-                });
+                //Идет вторым
+                linkInfo = GetLinkInfo(linksArr, response);
 
-                console.log(linkInfo);
+                //Идет первым
                 response.write("<br /><br /><br />");
+                GetBrokenURL(linkInfo, response);
 
-                for (var element in linkInfo)
-                {
-                    response.write(element.link);
-                    // if (!IsNormalStatus(element))
-                    // {
-                    //     response.write("<a href=" + element.link + ">" + element.link + "</a>" + "  " + element.status + "<br />");
-                    // }
-                }
                 setTimeout(() => {
                     resolve(linkInfo);
                 }, 10000);
@@ -136,9 +107,37 @@ function isNormalLink(link) {
 }
 
 function IsNormalStatus(status) {
-    return (status.charAt(0) != 4 && status.charAt(0) != 5);
+    return (status.charAt(0) != 3 && status.charAt(0) != 4 && status.charAt(0) != 5);
 }
 
-function GetLinkInfo() {
+function GetLinkInfo(linksArr, response) {
+    var linkInfo = [];
+    linksArr.forEach(function (link) {
+        var protocol = link.split('://')[0];
+        protocol = require(protocol);
+        protocol.get(link, function (res) {
+            response.write("<a href=" + link + ">" + link + "</a>" + "  " + res.statusCode + "<br />");
+            var linkElem = {};
+            linkElem.link = link;
+            linkElem.status = res.statusCode;
+            linkInfo.push(linkElem);
+            console.log("1");
+        }).on('error', function (e) {
+            // console.error(e);
+        });
+        console.log("2" );
+    });
+    console.log("3" );
 
+    return linkInfo;
+}
+
+function GetBrokenURL(linkInfo, response) {
+    for (var element in linkInfo)
+    {
+        if (!IsNormalStatus(element))
+        {
+            response.write("<a href=" + element.link + ">" + element.link + "</a>" + "  " + element.status + "<br />");
+        }
+    }
 }
