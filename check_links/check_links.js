@@ -1,8 +1,8 @@
-var express = require("express");
-var cheerio = require('cheerio');
-var rqp = require("request-promise");
-
-var app = express();
+const express = require("express");
+const cheerio = require('cheerio');
+const rqp = require("request-promise");
+const urlLib = require('url');
+const app = express();
 
 app.get("/", function (request, response) {
     response.sendFile(__dirname + "/index.html");
@@ -17,52 +17,38 @@ function StartServer() {
 }
 
 function ProcessLinks() {
-    app.get("/check_links", function (request, response) {
-        var url = request.query.url;
+    app.get("/check_links", MainAction);
+}
 
-        if (url != "") {
+function MainAction(request) {
+    let url = request.query.url;
+    if (url != "") {
+        let linksArr = [];
+        let mainURL = url;
 
-            var linksArr = [];
-            var mainURL = url;
+        getRequest(mainURL).then(async (data) => {
+            GetLinksFromPage(data, linksArr, mainURL);
+            linksArr = DeleteUnusedLinks(linksArr, mainURL);
+            let linksWithState = [];
+            await GetLinksInfo(linksArr)
+                .then(data => linksWithState = data);
+            console.log(linksWithState);
+        });
+    }
+}
 
-            let getData = () => {
-                return new Promise(function (resolve, reject) {
-                    rqp(mainURL, function (err, resp, body) {
-                        if (err) throw err;
-                        $ = cheerio.load(body);
-                        links = $('a');
-                        $(links).each(function (i, link) {
-                            var link = $(link).attr('href');
-                            const url = require('url');
-                            link = url.resolve(mainURL, link);
-                            linksArr.push(link);
-                        });
-                        linksArr = DeleteSomeLinks(linksArr);
-                        setTimeout(() => {
-                            resolve(GetStatusCode(mainURL, linksArr, response));
-                        }, 500);
-                    });
-                });
-            };
-
-            (async () => {
-                let main = async () => {
-                    linksArr = await getData();
-                };
-                await main();
-
-            })();
-
-        } else {
-            response.send("Please provide us first name");
-        }
+function GetLinksFromPage(data, linksArr, mainURL) {
+    $ = cheerio.load(data.body);
+    links = $('a');
+    $(links).each(function (i, link) {
+        linksArr.push(urlLib.resolve(mainURL, $(link).attr('href')));
     });
 }
 
-function DeleteSomeLinks(linksArr) {
+function DeleteUnusedLinks(linksArr, mainURL) {
     linksArr.forEach(function (link) {
-        if (!isNormalLink(link)) {
-            var i = linksArr.indexOf(link);
+        if (!isNormalLink(link) || isThisDomain(link, mainURL)) {
+            let i = linksArr.indexOf(link);
             linksArr.splice(i, 1);
         }
     });
@@ -70,36 +56,25 @@ function DeleteSomeLinks(linksArr) {
     return linksArr;
 }
 
-function GetStatusCode(mainURL, linksArr, response) {
+function isThisDomain(link, mainURL) {
+    const myURL = urlLib.parse(mainURL);
+    const hostname = myURL.hostname;
+    return (link.indexOf(hostname) == -1);
+}
 
-    var linkInfo = [];
-    let getData = () => {
-        return new Promise(function (resolve, reject) {
-            rqp(mainURL, function (err, resp, body) {
 
-                //Идет вторым
-                linkInfo = GetLinkInfo(linksArr, response);
-
-                //Идет первым
-                response.write("<br /><br /><br />");
-                GetBrokenURL(linkInfo, response);
-
-                setTimeout(() => {
-                    resolve(linkInfo);
-                }, 10000);
-            });
-        });
-    };
-
-    (async () => {
-        let main = async () => {
-            linkInfo = await getData();
+function getRequest(currentUrl) {
+    return new Promise(resolve => {
+        let options = {
+            method: 'GET',
+            uri: currentUrl,
+            resolveWithFullResponse: true,
+            simple: false
         };
-        await main();
-        response.end();
-    })();
 
-    return linkInfo;
+        rqp(options)
+            .then(resolve);
+    })
 }
 
 function isNormalLink(link) {
@@ -110,34 +85,19 @@ function IsNormalStatus(status) {
     return (status.charAt(0) != 3 && status.charAt(0) != 4 && status.charAt(0) != 5);
 }
 
-function GetLinkInfo(linksArr, response) {
-    var linkInfo = [];
-    linksArr.forEach(function (link) {
-        var protocol = link.split('://')[0];
-        protocol = require(protocol);
-        protocol.get(link, function (res) {
-            response.write("<a href=" + link + ">" + link + "</a>" + "  " + res.statusCode + "<br />");
-            var linkElem = {};
-            linkElem.link = link;
-            linkElem.status = res.statusCode;
-            linkInfo.push(linkElem);
-            console.log("1");
-        }).on('error', function (e) {
-            // console.error(e);
-        });
-        console.log("2" );
-    });
-    console.log("3" );
-
-    return linkInfo;
-}
-
-function GetBrokenURL(linkInfo, response) {
-    for (var element in linkInfo)
-    {
-        if (!IsNormalStatus(element))
-        {
-            response.write("<a href=" + element.link + ">" + element.link + "</a>" + "  " + element.status + "<br />");
+function GetLinksInfo(linksArr) {
+    return new Promise(async resolve => {
+        let linkInfo = [];
+        for (let i = 0; i < linksArr.length; ++i) {
+            await getRequest(linksArr[i])
+                .then((data) => {
+                    let linkElem = {};
+                    linkElem.link = linksArr[i];
+                    linkElem.status = data.statusCode;
+                    linkInfo.push(linkElem);
+                });
         }
-    }
+
+        resolve(linkInfo);
+    })
 }
