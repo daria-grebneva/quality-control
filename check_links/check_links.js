@@ -20,21 +20,96 @@ function ProcessLinks() {
     app.get("/check_links", MainAction);
 }
 
-function MainAction(request) {
+function MainAction(request, response) {
     let url = request.query.url;
     if (url != "") {
-        let linksArr = [];
-        let mainURL = url;
+        let brokenLinks = [];
 
-        getRequest(mainURL).then(async (data) => {
-            GetLinksFromPage(data, linksArr, mainURL);
-            linksArr = DeleteUnusedLinks(linksArr, mainURL);
-            let linksWithState = [];
-            await GetLinksInfo(linksArr)
-                .then(data => linksWithState = data);
-            console.log(linksWithState);
-        });
+        getAllData(url)
+            .then(async (data) => {
+                console.log(data);
+                brokenLinks = GetBrokenUrl(data, brokenLinks);
+                console.log(brokenLinks);
+
+                const allData = {data, brokenLinks};
+                response.send(JSON.stringify(allData));
+            });
     }
+}
+
+function getAllData(requestUrl) {
+    return new Promise(async resolve => {
+        let links = [];
+        let queue = [];
+
+        while (true) {
+            let linksArr = [];
+            let linksWithState = [];
+            await getRequest(requestUrl)
+                .then(async (data) => {
+                    GetLinksFromPage(data, linksArr, requestUrl);
+                    linksArr = DeleteUnusedLinks(linksArr, requestUrl);
+                    await GetLinksInfo(linksArr)
+                        .then(data => linksWithState = data);
+                    queue = AddToQueue(queue, linksWithState, links, requestUrl);
+                    links = AddToLinks(queue, linksWithState, links);
+                })
+                .catch(console.log);
+            if (queue.length === 0) {
+                break;
+            }
+            requestUrl = queue[0];
+            queue.shift();
+        }
+        resolve(links);
+    })
+}
+
+function GetBrokenUrl(links, brokenLinks) {
+    for (let i = 0; i < links.length; ++i)
+    {
+        let status = links[i].status;
+        if (!IsNormalStatus(status))
+        {
+            brokenLinks.push(links[i]);
+        }
+    }
+
+    return brokenLinks;
+}
+
+function FindInArr(links, elem) {
+    for (let i = 0; i < links.length; ++i)
+    {
+        if (links[i].link == elem)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+function AddToQueue(queue, linksWithState, links, requestUrl) {
+    for (let i = 0; i < linksWithState.length; ++i)
+    {
+        let currentLink = linksWithState[i].link;
+        if ((!FindInArr(links, currentLink)) && (queue.indexOf(currentLink) == -1) && (currentLink != requestUrl))
+        {
+            queue.push(linksWithState[i].link);
+        }
+    }
+    return queue;
+}
+
+function AddToLinks(queue, linksWithState, links) {
+    for (let i = 0; i < linksWithState.length; ++i)
+    {
+        if (!FindInArr(links, linksWithState[i].link))
+        {
+            links.push(linksWithState[i]);
+        }
+    }
+    return links;
 }
 
 function GetLinksFromPage(data, linksArr, mainURL) {
@@ -82,7 +157,8 @@ function isNormalLink(link) {
 }
 
 function IsNormalStatus(status) {
-    return (status.charAt(0) != 3 && status.charAt(0) != 4 && status.charAt(0) != 5);
+    status = status + '';
+    return (status[0] != 4 && status[0] != 5);
 }
 
 function GetLinksInfo(linksArr) {

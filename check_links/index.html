@@ -4,6 +4,28 @@
 <head>
   <title>Check links</title>
   <link rel="stylesheet" type="text/css" href="src/css/style.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script>
+      $("#submit-button").on("click", function (event) {
+          event.preventDefault();
+          // let form = new FormData();
+          // form.append("url", $("#data-url").val());
+          $.ajax({
+              type: 'POST',
+              url: '/check_links',
+              // data: form,
+              cache: false,
+              contentType: false,
+              processData: false,
+              success: successGetDataUrls
+          });
+      });
+      function successGetDataUrls(data) {
+          const parseData = JSON.parse(data);
+          console.log(parseData.brokenLinks);
+      }
+
+  </script>
 </head>
 <body>
 <h1>Hello User!</h1>
@@ -17,7 +39,7 @@
     </div>
   </div>
   <div class="submit-url">
-    <input type="submit" value="get the url" />
+    <input id="submit-button" type="submit" value="get the url" />
   </div>
   </div>
 </form>
