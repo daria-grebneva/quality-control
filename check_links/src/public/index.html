@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Check links</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script type="text/javascript">
+        function SubForm() {
+            $.ajax({
+                url: '/check_links',
+                type: 'post',
+                data: $('#formData').serialize(),
+                success: onSuccess
+            });
+        }
+
+        function onSuccess(data) {
+            clearContainers();
+
+            const parseData = JSON.parse(data);
+            ParseLinks(parseData.links, $("#links"), $("#linksState"));
+            ParseLinks(parseData.brokenLinks, $("#brokenLinks"), $("#brokenLinksState"));
+
+            $("#time").append('<div>' + 'Время выполнения программы: ' + parseData.info.time + '</div>');
+            $("#linksNumber").append('<div>' + 'Количество ссылок: ' + parseData.info.linksNumber + '</div>');
+            $("#brokenLinksNumber").append('<div>' + 'Количество битых ссылок: ' + parseData.info.brokenLinksNumber + '</div>');
+        }
+
+        function clearContainers() {
+            $("#links").empty();
+            $("#linksState").empty();
+            $("#brokenLinks").empty();
+            $("#brokenLinksState").empty();
+            $("#time").empty();
+            $("#linksNumber").empty();
+            $("#brokenLinksNumber").empty();
+        }
+
+        function ParseLinks(parseData, linksContainer, statusContainer) {
+            for (let i = 0; i < parseData.length; ++i) {
+                linksContainer.append('<div>' + '<a href="' + parseData[i].link + '" target="_blank" >' + parseData[i].link + '</a>' + '</div>');
+                statusContainer.append('<div>' + parseData[i].status + '</div>');
+            }
+        }
+    </script>
+</head>
+<body>
+<div class="navbar-brand">
+    <form id="formData">
+        <div class="form-group">
+            <span>Enter your URL</span>
+        </div>
+        <div class="form-group">
+            <input type="text" id="url" name="url"/>
+        </div>
+    </form>
+    <div class="submit-url" style="margin-top: 20px">
+        <button id="submit-button" type="submit" class="btn-primary" onclick="SubForm()">get the url</button>
+    </div>
+</div>
+<div class="container">
+    <div class="row form-group">
+        <div id="links" class="col-lg-4"></div>
+        <div id="linksState" class="col-lg-2"></div>
+        <div id="brokenLinks" class="col-lg-4"></div>
+        <div id="brokenLinksState" class="col-lg-2"></div>
+    </div>
+    <div class="clear"></div>
+    <div class="row form-group">
+        <div id="time" class="container"></div>
+        <div id="linksNumber" class="container"></div>
+        <div id="brokenLinksNumber" class="container"></div>
+    </div>
+</div>
+
+
+</body>
+</html>
